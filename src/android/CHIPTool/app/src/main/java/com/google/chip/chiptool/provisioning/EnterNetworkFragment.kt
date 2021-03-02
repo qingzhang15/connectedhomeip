@@ -26,6 +26,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.chip.chiptool.ChipClient
 import com.google.chip.chiptool.R
+import com.google.chip.chiptool.util.DeviceIdUtil
 import kotlinx.android.synthetic.main.enter_thread_network_fragment.channelEd
 import kotlinx.android.synthetic.main.enter_thread_network_fragment.masterKeyEd
 import kotlinx.android.synthetic.main.enter_thread_network_fragment.panIdEd
