@@ -20,6 +20,8 @@ package chip.devicecontroller;
 /** Interface for custom storage implementations. */
 public interface AndroidPersistentStorageDelegate {
   public String getKeyValue(String key);
+
   public void setKeyValue(String key, String value);
+
   public void deleteKeyValue(String key);
 }
