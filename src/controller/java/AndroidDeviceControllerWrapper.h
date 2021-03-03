@@ -30,7 +30,7 @@
  *
  * Generally it contains the DeviceController class itself, plus any related delegates/callbacks.
  */
-class AndroidDeviceControllerWrapper : public chip::Controller::DevicePairingDelegate, public chip::Controller::DeviceStatusDelegate, public chip::Controller::PersistentStorageDelegate
+class AndroidDeviceControllerWrapper : public chip::Controller::DevicePairingDelegate, public chip::Controller::DeviceStatusDelegate, public chip::PersistentStorageDelegate
 {
 public:
     ~AndroidDeviceControllerWrapper();
@@ -54,7 +54,7 @@ public:
     void OnStatusChange(void) override;
 
     // PersistentStorageDelegate implementation
-    void SetDelegate(chip::Controller::PersistentStorageResultDelegate * delegate) override;
+    void SetDelegate(chip::PersistentStorageResultDelegate * delegate) override;
     void GetKeyValue(const char * key) override;
     CHIP_ERROR GetKeyValue(const char * key, char * value, uint16_t & size) override;
     void SetKeyValue(const char * key, const char * value) override;
@@ -81,7 +81,7 @@ private:
 
     ChipDeviceControllerPtr mController;
     chip::RendezvousDeviceCredentialsDelegate * mCredentialsDelegate = nullptr;
-    chip::Controller::PersistentStorageResultDelegate * mStorageResultDelegate = nullptr;
+    chip::PersistentStorageResultDelegate * mStorageResultDelegate = nullptr;
 
 
     JavaVM * mJavaVM       = nullptr;

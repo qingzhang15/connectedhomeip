@@ -28,7 +28,6 @@
 
 #include <openthread/cli.h>
 #include <openthread/dataset.h>
-#include <openthread/instance.h>
 #include <openthread/joiner.h>
 #include <openthread/link.h>
 #include <openthread/netdata.h>
@@ -46,6 +45,7 @@
 #include <platform/internal/CHIPDeviceLayerInternal.h>
 #include <platform/internal/DeviceNetworkInfo.h>
 #include <support/CodeUtils.h>
+#include <support/ReturnMacros.h>
 #include <support/logging/CHIPLogging.h>
 
 extern "C" void otSysProcessDrivers(otInstance * aInstance);
@@ -259,6 +259,33 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::_SetThreadProvis
     // Set the dataset as the active dataset for the node.
     Impl()->LockThreadStack();
     otErr = otDatasetSetActive(mOTInst, &newDataset);
+    Impl()->UnlockThreadStack();
+
+    // post an event alerting other subsystems about change in provisioning state
+    ChipDeviceEvent event;
+    event.Type                                           = DeviceEventType::kServiceProvisioningChange;
+    event.ServiceProvisioningChange.IsServiceProvisioned = true;
+    PlatformMgr().PostEvent(&event);
+
+    return MapOpenThreadError(otErr);
+}
+
+template <class ImplClass>
+CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::_SetThreadProvision(const uint8_t * operationalDataset,
+                                                                                    size_t operationalDatasetLen)
+{
+    otError otErr = OT_ERROR_FAILED;
+    otOperationalDatasetTlvs datasetTlv;
+
+    VerifyOrReturnError(operationalDatasetLen <= sizeof(datasetTlv.mTlvs), CHIP_ERROR_MESSAGE_TOO_LONG);
+    // A compile time check to avoid misbehavior if the openthread implementation changed over time.
+    static_assert(sizeof(datasetTlv.mTlvs) <= UINT8_MAX);
+    memcpy(datasetTlv.mTlvs, operationalDataset, operationalDatasetLen);
+    datasetTlv.mLength = static_cast<uint8_t>(operationalDatasetLen);
+
+    // Set the dataset as the active dataset for the node.
+    Impl()->LockThreadStack();
+    otErr = otDatasetSetActiveTlvs(mOTInst, &datasetTlv);
     Impl()->UnlockThreadStack();
 
     // post an event alerting other subsystems about change in provisioning state
@@ -756,13 +783,7 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::_GetAndLogThread
                         neighbor->mExtAddress.m8[3], neighbor->mExtAddress.m8[4], neighbor->mExtAddress.m8[5],
                         neighbor->mExtAddress.m8[6], neighbor->mExtAddress.m8[7], neighbor->mRloc16, neighbor->mAge,
                         neighbor->mLinkQualityIn, neighbor->mAverageRssi, neighbor->mLastRssi, neighbor->mLinkFrameCounter,
-                        neighbor->mMleFrameCounter, neighbor->mRxOnWhenIdle ? 'Y' : 'n',
-#if OPENTHREAD_API_VERSION
-                        neighbor->mFullThreadDevice ? 'Y' : 'n',
-#else
-                        'n',
-#endif
-
+                        neighbor->mMleFrameCounter, neighbor->mRxOnWhenIdle ? 'Y' : 'n', neighbor->mFullThreadDevice ? 'Y' : 'n',
                         neighbor->mFullNetworkData ? 'Y' : 'n', neighbor->mIsChild ? 'Y' : 'n', printBuf);
     }
 
@@ -826,7 +847,7 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::DoInit(otInstanc
         VerifyOrExit(otInst != NULL, err = MapOpenThreadError(OT_ERROR_FAILED));
     }
 
-#if !defined(__ZEPHYR__) && !defined(ENABLE_CHIP_SHELL)
+#if !defined(__ZEPHYR__) && !defined(ENABLE_CHIP_SHELL) && !defined(PW_RPC_ENABLED)
     otCliUartInit(otInst);
 #endif
 
@@ -838,17 +859,6 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::DoInit(otInstanc
     // method implementation if it chooses to.
     otErr = otSetStateChangedCallback(otInst, ImplClass::OnOpenThreadStateChange, NULL);
     VerifyOrExit(otErr == OT_ERROR_NONE, err = MapOpenThreadError(otErr));
-
-    // Secure data request mode bit has been removed from the certain OpenThread version.
-#if OPENTHREAD_API_VERSION < 30
-    // Enable use of secure data requests.
-    {
-        otLinkModeConfig linkMode    = otThreadGetLinkMode(otInst);
-        linkMode.mSecureDataRequests = true;
-        otErr                        = otThreadSetLinkMode(otInst, linkMode);
-        VerifyOrExit(otErr == OT_ERROR_NONE, err = MapOpenThreadError(otErr));
-    }
-#endif
 
     // Enable automatic assignment of Thread advertised addresses.
 #if OPENTHREAD_CONFIG_IP6_SLAAC_ENABLE
@@ -968,7 +978,7 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::_JoinerStart(voi
         discerner.mLength = 12;
         discerner.mValue  = discriminator;
 
-        ChipLogProgress(DeviceLayer, "Joiner Discerner: %hu", discriminator);
+        ChipLogProgress(DeviceLayer, "Joiner Discerner: %u", discriminator);
         otJoinerSetDiscerner(mOTInst, &discerner);
     }
 

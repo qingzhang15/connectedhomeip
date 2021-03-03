@@ -1,5 +1,5 @@
 #
-#    Copyright (c) 2020 Project CHIP Authors
+#    Copyright (c) 2020-2021 Project CHIP Authors
 #    Copyright (c) 2019-2020 Google, LLC.
 #    Copyright (c) 2013-2018 Nest Labs, Inc.
 #    All rights reserved.
@@ -61,7 +61,7 @@ class DCState(enum.IntEnum):
 
 @_singleton
 class ChipDeviceController(object):
-    def __init__(self, startNetworkThread=True):
+    def __init__(self, startNetworkThread=True, controllerNodeId=0):
         self.state = DCState.NOT_INITIALIZED
         self.devCtrl = None
         self._ChipStack = ChipStack()
@@ -70,7 +70,7 @@ class ChipDeviceController(object):
         self._InitLib()
 
         devCtrl = c_void_p(None)
-        res = self._dmLib.pychip_DeviceController_NewDeviceController(pointer(devCtrl))
+        res = self._dmLib.pychip_DeviceController_NewDeviceController(pointer(devCtrl), controllerNodeId)
         if res != 0:
             raise self._ChipStack.ErrorToException(res)
 
@@ -115,16 +115,16 @@ class ChipDeviceController(object):
             )
         )
 
-    def ConnectBLE(self, discriminator, setupPinCode):
+    def ConnectBLE(self, discriminator, setupPinCode, nodeid):
         self.state = DCState.RENDEZVOUS_ONGOING
         return self._ChipStack.CallAsync(
-            lambda: self._dmLib.pychip_DeviceController_ConnectBLE(self.devCtrl, discriminator, setupPinCode)
+            lambda: self._dmLib.pychip_DeviceController_ConnectBLE(self.devCtrl, discriminator, setupPinCode, nodeid)
         )
 
-    def ConnectIP(self, ipaddr, setupPinCode):
+    def ConnectIP(self, ipaddr, setupPinCode, nodeid):
         self.state = DCState.RENDEZVOUS_ONGOING
         return self._ChipStack.CallAsync(
-            lambda: self._dmLib.pychip_DeviceController_ConnectIP(self.devCtrl, ipaddr, setupPinCode)
+            lambda: self._dmLib.pychip_DeviceController_ConnectIP(self.devCtrl, ipaddr, setupPinCode, nodeid)
         )
 
     def ZCLSend(self, cluster, command, nodeid, endpoint, groupid, args):
@@ -158,13 +158,18 @@ class ChipDeviceController(object):
         if ret != 0:
             raise self._ChipStack.ErrorToException(res)
 
+    def SetThreadCredential(self, channel, panid, masterKey):
+        ret = self._dmLib.pychip_ScriptDevicePairingDelegate_SetThreadCredential(self.devCtrl, channel, panid, masterKey.encode("utf-8") + b'\0')
+        if ret != 0:
+            raise self._ChipStack.ErrorToException(ret)
+
     # ----- Private Members -----
     def _InitLib(self):
         if self._dmLib is None:
             self._dmLib = CDLL(self._ChipStack.LocateChipDLL())
 
             self._dmLib.pychip_DeviceController_NewDeviceController.argtypes = [
-                POINTER(c_void_p)
+                POINTER(c_void_p), c_uint64
             ]
             self._dmLib.pychip_DeviceController_NewDeviceController.restype = c_uint32
 
@@ -175,10 +180,10 @@ class ChipDeviceController(object):
                 c_uint32
             )
 
-            self._dmLib.pychip_DeviceController_ConnectBLE.argtypes = [c_void_p, c_uint16, c_uint32]
+            self._dmLib.pychip_DeviceController_ConnectBLE.argtypes = [c_void_p, c_uint16, c_uint32, c_uint64]
             self._dmLib.pychip_DeviceController_ConnectBLE.restype = c_uint32
 
-            self._dmLib.pychip_DeviceController_ConnectIP.argtypes = [c_void_p, c_char_p, c_uint32]
+            self._dmLib.pychip_DeviceController_ConnectIP.argtypes = [c_void_p, c_char_p, c_uint32, c_uint64]
             self._dmLib.pychip_DeviceController_ConnectIP.restype = c_uint32
 
             self._dmLib.pychip_ScriptDevicePairingDelegate_SetWifiCredential.argtypes = [c_void_p, c_char_p, c_char_p]

@@ -24,11 +24,10 @@
  *
  */
 
-#include "common.h"
-
 #include <app/CommandHandler.h>
 #include <app/CommandSender.h>
 #include <app/InteractionModelEngine.h>
+#include <app/tests/integration/common.h>
 #include <core/CHIPCore.h>
 #include <platform/CHIPDeviceLayer.h>
 
@@ -140,14 +139,14 @@ CHIP_ERROR EstablishSecureSession()
 {
     CHIP_ERROR err = CHIP_NO_ERROR;
 
-    chip::SecurePairingUsingTestSecret * testSecurePairingSecret = chip::Platform::New<chip::SecurePairingUsingTestSecret>(
-        chip::Optional<chip::NodeId>::Value(chip::kTestDeviceNodeId), static_cast<uint16_t>(0), static_cast<uint16_t>(0));
+    chip::SecurePairingUsingTestSecret * testSecurePairingSecret = chip::Platform::New<chip::SecurePairingUsingTestSecret>();
     VerifyOrExit(testSecurePairingSecret != nullptr, err = CHIP_ERROR_NO_MEMORY);
 
     // Attempt to connect to the peer.
     err = gSessionManager.NewPairing(chip::Optional<chip::Transport::PeerAddress>::Value(
                                          chip::Transport::PeerAddress::UDP(gDestAddr, CHIP_PORT, INET_NULL_INTERFACEID)),
-                                     chip::kTestDeviceNodeId, testSecurePairingSecret, gAdminId);
+                                     chip::kTestDeviceNodeId, testSecurePairingSecret,
+                                     chip::SecureSessionMgr::PairingDirection::kInitiator, gAdminId);
 
 exit:
     if (err != CHIP_NO_ERROR)

@@ -30,8 +30,11 @@ COMPONENT_SRCDIRS :=                                                            
   ../third_party/connectedhomeip/src/app/clusters/level-control                     \
   ../third_party/connectedhomeip/src/app/clusters/identify                          \
   ../third_party/connectedhomeip/src/app/clusters/barrier-control-server            \
+  ../third_party/connectedhomeip/src/app/clusters/general-commissioning-server      \
   ../third_party/connectedhomeip/src/app/clusters/groups-server                     \
   ../third_party/connectedhomeip/src/app/clusters/color-control-server              \
+  ../third_party/connectedhomeip/src/app/clusters/content-launch-server             \
+  ../third_party/connectedhomeip/src/app/clusters/media-playback-server             \
   ../third_party/connectedhomeip/src/app/clusters/temperature-measurement-server    \
   ../third_party/connectedhomeip/src/app/clusters/scenes                            \
   ../third_party/connectedhomeip/src/app/clusters/basic                             \

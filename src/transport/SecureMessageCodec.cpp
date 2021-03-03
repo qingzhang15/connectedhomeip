@@ -57,10 +57,15 @@ CHIP_ERROR Encode(NodeId localNodeId, Transport::PeerConnectionState * state, Pa
                   "Addition to generate payloadLength might overflow");
 
     packetHeader
-        .SetSourceNodeId(localNodeId)                 //
-        .SetDestinationNodeId(state->GetPeerNodeId()) //
-        .SetMessageId(msgId)                          //
+        .SetSourceNodeId(localNodeId) //
+        .SetMessageId(msgId)          //
         .SetEncryptionKeyID(state->GetLocalKeyID());
+
+    if (state->GetPeerNodeId() != kUndefinedNodeId)
+    {
+        packetHeader.SetDestinationNodeId(state->GetPeerNodeId());
+    }
+
     packetHeader.GetFlags().Set(Header::FlagValues::kSecure);
 
     ReturnErrorOnFailure(payloadHeader.EncodeBeforeData(msgBuf));
@@ -69,7 +74,7 @@ CHIP_ERROR Encode(NodeId localNodeId, Transport::PeerConnectionState * state, Pa
     uint16_t totalLen = msgBuf->TotalLength();
 
     MessageAuthenticationCode mac;
-    ReturnErrorOnFailure(state->GetSecureSession().Encrypt(data, totalLen, data, packetHeader, mac));
+    ReturnErrorOnFailure(state->EncryptBeforeSend(data, totalLen, data, packetHeader, mac));
 
     uint16_t taglen = 0;
     ReturnErrorOnFailure(mac.Encode(packetHeader, &data[totalLen], msgBuf->AvailableDataLength(), &taglen));
@@ -113,7 +118,7 @@ CHIP_ERROR Decode(Transport::PeerConnectionState * state, PayloadHeader & payloa
     msg->SetDataLength(len);
 
     uint8_t * plainText = msg->Start();
-    ReturnErrorOnFailure(state->GetSecureSession().Decrypt(data, len, plainText, packetHeader, mac));
+    ReturnErrorOnFailure(state->DecryptOnReceive(data, len, plainText, packetHeader, mac));
 
     ReturnErrorOnFailure(payloadHeader.DecodeAndConsume(msg));
     return CHIP_NO_ERROR;

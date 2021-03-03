@@ -123,8 +123,7 @@ CHIP_ERROR EstablishSecureSession()
     CHIP_ERROR err = CHIP_NO_ERROR;
 
     chip::Optional<chip::Transport::PeerAddress> peerAddr;
-    chip::SecurePairingUsingTestSecret * testSecurePairingSecret = chip::Platform::New<chip::SecurePairingUsingTestSecret>(
-        chip::Optional<chip::NodeId>::Value(chip::kTestDeviceNodeId), static_cast<uint16_t>(0), static_cast<uint16_t>(0));
+    chip::SecurePairingUsingTestSecret * testSecurePairingSecret = chip::Platform::New<chip::SecurePairingUsingTestSecret>();
     VerifyOrExit(testSecurePairingSecret != nullptr, err = CHIP_ERROR_NO_MEMORY);
 
     if (gUseTCP)
@@ -138,7 +137,8 @@ CHIP_ERROR EstablishSecureSession()
     }
 
     // Attempt to connect to the peer.
-    err = gSessionManager.NewPairing(peerAddr, chip::kTestDeviceNodeId, testSecurePairingSecret, gAdminId);
+    err = gSessionManager.NewPairing(peerAddr, chip::kTestDeviceNodeId, testSecurePairingSecret,
+                                     chip::SecureSessionMgr::PairingDirection::kInitiator, gAdminId);
 
 exit:
     if (err != CHIP_NO_ERROR)

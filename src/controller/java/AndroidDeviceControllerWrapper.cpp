@@ -20,7 +20,7 @@
 
 #include <memory>
 
-using chip::Controller::PersistentStorageResultDelegate;
+using chip::PersistentStorageResultDelegate;
 using chip::Controller::DeviceCommissioner;
 
 namespace {
@@ -285,7 +285,7 @@ void AndroidDeviceControllerWrapper::OnMessage(chip::System::PacketBufferHandle 
 
 void AndroidDeviceControllerWrapper::OnStatusChange(void) {}
 
-void AndroidDeviceControllerWrapper::SetDelegate(chip::Controller::PersistentStorageResultDelegate * delegate)
+void AndroidDeviceControllerWrapper::SetDelegate(chip::PersistentStorageResultDelegate * delegate)
 {
     mStorageResultDelegate = delegate;
 }

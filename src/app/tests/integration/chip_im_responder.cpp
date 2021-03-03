@@ -24,11 +24,10 @@
  *
  */
 
-#include "common.h"
-
 #include "app/InteractionModelEngine.h"
 #include <app/CommandHandler.h>
 #include <app/CommandSender.h>
+#include <app/tests/integration/common.h>
 #include <core/CHIPCore.h>
 #include <platform/CHIPDeviceLayer.h>
 
@@ -131,7 +130,8 @@ int main(int argc, char * argv[])
     err = chip::app::InteractionModelEngine::GetInstance()->Init(&gExchangeManager);
     SuccessOrExit(err);
 
-    err = gSessionManager.NewPairing(peer, chip::kTestControllerNodeId, &gTestPairing, gAdminId);
+    err = gSessionManager.NewPairing(peer, chip::kTestControllerNodeId, &gTestPairing,
+                                     chip::SecureSessionMgr::PairingDirection::kResponder, gAdminId);
     SuccessOrExit(err);
 
     printf("Listening for IM requests...\n");

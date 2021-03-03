@@ -29,6 +29,7 @@
 #include "CHIPJNIError.h"
 
 #include <app/chip-zcl-zpro-codec.h>
+#include <atomic>
 #include <ble/BleUUID.h>
 #include <controller/CHIPDeviceController.h>
 #include <jni.h>
@@ -393,8 +394,8 @@ JNI_METHOD(void, pairTestDeviceWithoutSecurity)(JNIEnv * env, jobject self, jlon
     {
         ScopedPthreadLock lock(&sStackLock);
         Controller::SerializedDevice mSerializedTestDevice;
-        err = wrapper->Controller()->PairTestDeviceWithoutSecurity(kRemoteDeviceId, deviceIPAddr, mSerializedTestDevice, CHIP_PORT,
-                                                                   INET_NULL_INTERFACEID);
+        err = wrapper->Controller()->PairTestDeviceWithoutSecurity(
+            kRemoteDeviceId, chip::Transport::PeerAddress::UDP(deviceIPAddr), mSerializedTestDevice);
     }
 
     if (err != CHIP_NO_ERROR)
@@ -984,13 +985,16 @@ void * IOThreadMain(void * arg)
     sJVM->AttachCurrentThreadAsDaemon((void **) &env, (void *) &attachArgs);
 #endif
 
+    // Set to true to quit the loop. This is currently unused.
+    std::atomic<bool> quit;
+
     ChipLogProgress(Controller, "IO thread starting");
 
     // Lock the stack to prevent collisions with Java threads.
     pthread_mutex_lock(&sStackLock);
 
     // Loop until we are told to exit.
-    while (true)
+    while (!quit.load(std::memory_order_relaxed))
     {
         numFDs = 0;
         FD_ZERO(&readFDs);

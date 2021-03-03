@@ -18,8 +18,8 @@ import("//build_overrides/nlassert.gni")
 import("//build_overrides/nlfaultinjection.gni")
 import("//build_overrides/nlio.gni")
 
-import("${build_root}/chip/chip_version.gni")
-import("${build_root}/chip/tests.gni")
+import("${chip_root}/build/chip/chip_version.gni")
+import("${chip_root}/build/chip/tests.gni")
 import("${chip_root}/src/lib/core/core.gni")
 
 action("gen_chip_version") {
@@ -57,6 +57,8 @@ static_library("support") {
     "BufferReader.h",
     "BufferWriter.cpp",
     "BufferWriter.h",
+    "BytesToHex.cpp",
+    "BytesToHex.h",
     "CHIPArgParser.cpp",
     "CHIPCounter.cpp",
     "CHIPCounter.h",
@@ -71,6 +73,8 @@ static_library("support") {
     "ErrorStr.h",
     "FibonacciUtils.cpp",
     "FibonacciUtils.h",
+    "LifetimePersistedCounter.cpp",
+    "LifetimePersistedCounter.h",
     "PersistedCounter.cpp",
     "PersistedCounter.h",
     "Pool.cpp",

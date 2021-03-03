@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-#    Copyright (c) 2020 Project CHIP Authors
+#    Copyright (c) 2020-2021 Project CHIP Authors
 #    Copyright (c) 2013-2018 Nest Labs, Inc.
 #    All rights reserved.
 #
@@ -30,6 +30,7 @@ from chip import exceptions
 import sys
 import os
 import platform
+import random
 from optparse import OptionParser, OptionValueError
 import shlex
 import base64
@@ -124,7 +125,7 @@ def FormatZCLArguments(args, command):
 
 
 class DeviceMgrCmd(Cmd):
-    def __init__(self, rendezvousAddr=None):
+    def __init__(self, rendezvousAddr=None, controllerNodeId=0):
         self.lastNetworkId = None
 
         Cmd.__init__(self)
@@ -141,7 +142,7 @@ class DeviceMgrCmd(Cmd):
 
         self.bleMgr = None
 
-        self.devCtrl = ChipDeviceCtrl.ChipDeviceController()
+        self.devCtrl = ChipDeviceCtrl.ChipDeviceController(controllerNodeId=controllerNodeId)
 
         self.historyFileName = os.path.expanduser(
             "~/.chip-device-ctrl-history")
@@ -169,6 +170,7 @@ class DeviceMgrCmd(Cmd):
         "zcl",
 
         "set-pairing-wifi-credential",
+        "set-pairing-thread-credential",
     ]
 
     def parseline(self, line):
@@ -348,8 +350,8 @@ class DeviceMgrCmd(Cmd):
 
     def do_connect(self, line):
         """
-        connect -ip <ip address> <setup pin code>
-        connect -ble <discriminator> <setup pin code>
+        connect -ip <ip address> <setup pin code> [<nodeid>]
+        connect -ble <discriminator> <setup pin code> [<nodeid>]
 
         connect command is used for establishing a rendezvous session to the device.
         currently, only connect using setupPinCode is supported.
@@ -364,14 +366,21 @@ class DeviceMgrCmd(Cmd):
                 print("Usage:")
                 self.do_help("connect SetupPinCode")
                 return
-            if args[0] == "-ip" and len(args) == 3:
-                self.devCtrl.ConnectIP(args[1].encode("utf-8"), int(args[2]))
-            elif args[0] == "-ble" and len(args) == 3:
-                self.devCtrl.ConnectBLE(int(args[1]), int(args[2]))
+
+            nodeid = random.randint(1, 1000000)  # Just a random number
+            if len(args) == 4:
+                nodeid = int(args[3])
+            print("Device is assigned with nodeid = {}".format(nodeid))
+
+            if args[0] == "-ip" and len(args) >= 3:
+                self.devCtrl.ConnectIP(args[1].encode("utf-8"), int(args[2]), nodeid)
+            elif args[0] == "-ble" and len(args) >= 3:
+                self.devCtrl.ConnectBLE(int(args[1]), int(args[2]), nodeid)
             else:
                 print("Usage:")
                 self.do_help("connect SetupPinCode")
                 return
+            print("Device temporary node id (**this does not match spec**): {}".format(nodeid))
         except exceptions.ChipStackException as ex:
             print(str(ex))
             return
@@ -421,18 +430,37 @@ class DeviceMgrCmd(Cmd):
 
     def do_setpairingwificredential(self, line):
         """
-        set-pairing-wifi-credential
+        set-pairing-wifi-credential <ssid> <password>
 
-        Set WiFi credential for pairing, will sent to device
+        Set WiFi credential to be used while pairing a Wi-Fi device
         """
         try:
             args = shlex.split(line)
-            self.devCtrl.SetWifiCredential(args[0], args[1])
+            if len(args) == 2:
+                self.devCtrl.SetWifiCredential(args[0], args[1])
+                print("WiFi credential set")
+            else:
+                self.do_help("set-pairing-wifi-credential")
         except exceptions.ChipStackException as ex:
             print(str(ex))
             return
 
-        print("WiFi credential set")
+    def do_setpairingthreadcredential(self, line):
+        """
+        set-pairing-thread-credential <channel> <panid> <masterkey>
+
+        Set Thread credential to be used while pairing a Thread device
+        """
+        try:
+            args = shlex.split(line)
+            if len(args) == 3:
+                self.devCtrl.SetThreadCredential(int(args[0]), int(args[1], 16), args[2])
+                print("Thread credential set")
+            else:
+                self.do_help("set-pairing-thread-credential")
+        except exceptions.ChipStackException as ex:
+            print(str(ex))
+            return
 
     def do_history(self, line):
         """
@@ -480,13 +508,23 @@ def main():
         help="Device rendezvous address",
         metavar="<ip-address>",
     )
+    optParser.add_option(
+        "-n",
+        "--controller-nodeid",
+        action="store",
+        dest="controllerNodeId",
+        default=0,
+        type='int',
+        help="Controller node ID",
+        metavar="<nodeid>",
+    )
     (options, remainingArgs) = optParser.parse_args(sys.argv[1:])
 
     if len(remainingArgs) != 0:
         print("Unexpected argument: %s" % remainingArgs[0])
         sys.exit(-1)
 
-    devMgrCmd = DeviceMgrCmd(rendezvousAddr=options.rendezvousAddr)
+    devMgrCmd = DeviceMgrCmd(rendezvousAddr=options.rendezvousAddr, controllerNodeId=options.controllerNodeId)
     print("Chip Device Controller Shell")
     if options.rendezvousAddr:
         print("Rendezvous address set to %s" % options.rendezvousAddr)
