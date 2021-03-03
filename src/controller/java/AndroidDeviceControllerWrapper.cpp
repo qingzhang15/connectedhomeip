@@ -332,12 +332,12 @@ CHIP_ERROR AndroidDeviceControllerWrapper::GetKeyValue(const char * key, char * 
     } else {
         err = CHIP_ERROR_INVALID_ARGUMENT;
     }
-    
+
     return err;
 }
 
 void AndroidDeviceControllerWrapper::SetKeyValue(const char * key, const char * value)
-{   
+{
     jclass storageCls = GetPersistentStorageClass();
     jmethodID method = GetJavaEnv()->GetStaticMethodID(storageCls, "setKeyValue", "(Ljava/lang/String;Ljava/lang/String;)V");
 
@@ -357,7 +357,7 @@ void AndroidDeviceControllerWrapper::SetKeyValue(const char * key, const char * 
     }
 }
 
-void AndroidDeviceControllerWrapper::DeleteKeyValue(const char * key) 
+void AndroidDeviceControllerWrapper::DeleteKeyValue(const char * key)
 {
     jclass storageCls = GetPersistentStorageClass();
     jmethodID method = GetJavaEnv()->GetStaticMethodID(storageCls, "deleteKeyValue", "(Ljava/lang/String;)V");
